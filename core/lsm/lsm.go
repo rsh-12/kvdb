@@ -3,6 +3,7 @@ package lsm
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 type LSMTree struct {
@@ -23,7 +24,8 @@ func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
 	if len(l.memTable.data) >= l.threshold {
-		filename := fmt.Sprintf("lsm/data/sstable_%d", len(l.sstables))
+		pwd, _ := os.Getwd()
+		filename := fmt.Sprintf("%v/core/lsm/data/sstable_%d", pwd, len(l.sstables))
 		if err := l.memTable.Flush(filename); err != nil {
 			log.Fatal("error flushing MemTable to sstable:", err)
 			return

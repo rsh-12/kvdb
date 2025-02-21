@@ -1,7 +1,7 @@
 package main
 
 import (
-	"kvdb/lsm"
+	"kvdb/core/lsm"
 	"testing"
 )
 
