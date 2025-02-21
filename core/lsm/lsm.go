@@ -2,8 +2,8 @@ package lsm
 
 import (
 	"fmt"
+	"kvdb/internal/util"
 	"log"
-	"os"
 )
 
 type LSMTree struct {
@@ -12,7 +12,11 @@ type LSMTree struct {
 	threshold int
 }
 
+var projectDir string
+
 func NewLSMTree(threshold int) *LSMTree {
+	projectDir = util.GetProjectDir()
+
 	return &LSMTree{
 		memTable:  NewMemTable(),
 		sstables:  make([]*SSTable, 0),
@@ -24,8 +28,7 @@ func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
 	if len(l.memTable.data) >= l.threshold {
-		pwd, _ := os.Getwd()
-		filename := fmt.Sprintf("%v/core/lsm/data/sstable_%d", pwd, len(l.sstables))
+		filename := fmt.Sprintf("%v/core/lsm/data/sstable_%d", projectDir, len(l.sstables))
 		if err := l.memTable.Flush(filename); err != nil {
 			log.Fatal("error flushing MemTable to sstable:", err)
 			return
@@ -34,7 +37,7 @@ func (l *LSMTree) Put(key, value string) {
 	}
 }
 
-func (l *LSMTree) Get(key string) (value string, exists bool) {
+func (l *LSMTree) Get(key string) (string, bool) {
 	if value, exists := l.memTable.Get(key); exists {
 		return value, true
 	}
@@ -45,5 +48,5 @@ func (l *LSMTree) Get(key string) (value string, exists bool) {
 		}
 	}
 
-	return
+	return "", false
 }

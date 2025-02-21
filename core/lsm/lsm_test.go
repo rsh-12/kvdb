@@ -1,12 +1,11 @@
-package main
+package lsm
 
 import (
-	"kvdb/core/lsm"
 	"testing"
 )
 
 func TestGet(t *testing.T) {
-	lsm := lsm.NewLSMTree(2)
+	lsm := NewLSMTree(2)
 	lsm.Put("level", "info")
 	lsm.Put("profile", "dev")
 

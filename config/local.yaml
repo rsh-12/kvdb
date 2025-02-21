@@ -3,4 +3,6 @@ http_server:
   address: "localhost:8080"
   timeout: 5s
   idle_timeout: 30s
+core:
+  capacity: 100
   

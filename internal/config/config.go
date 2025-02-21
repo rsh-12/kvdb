@@ -13,12 +13,17 @@ const defaultConfigPath = "./config/local.yaml"
 type Config struct {
 	Env        string `yaml:"env" env-default:"local"`
 	HTTPServer `yaml:"http_server"`
+	Core       `yaml:"core" env-required:"true"`
 }
 
 type HTTPServer struct {
 	Address     string        `yaml:"address" env-default:"0.0.0.0:8080"`
 	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
+}
+
+type Core struct {
+	Capacity int `yaml:"capacity" env-required:"true"`
 }
 
 func MustLoad() *Config {
