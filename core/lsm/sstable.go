@@ -39,7 +39,7 @@ func (s *SSTable) Get(key string) (value string, exists bool) {
 	return binarySearch(positions, file, key)
 }
 
-func binarySearch(positions []int64, file *os.File, key string) (value string, exists bool) {
+func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
 	low, high := 0, len(positions)-1
 	for low <= high {
 		mid := (low + high) / 2
@@ -47,14 +47,18 @@ func binarySearch(positions []int64, file *os.File, key string) (value string, e
 
 		readKey := read(file)
 		if readKey == key {
-			return read(file), true
+			value, exists := read(file), true
+			if value == "" {
+				break
+			}
+			return value, exists
 		} else if readKey < key {
 			low = mid + 1
 		} else {
 			high = mid - 1
 		}
 	}
-	return
+	return "", false
 }
 
 func read(file *os.File) (value string) {
