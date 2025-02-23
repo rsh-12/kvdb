@@ -28,8 +28,21 @@ func (m *MemTable) Put(key, value string) {
 func (m *MemTable) Get(key string) (string, bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+
 	value, exists := m.data[key]
+	if value == "" {
+		return "", false
+	}
 	return value, exists
+}
+
+// Delete marks a key as deleted by inserting an empty value.
+// Since the storage follows an append-only log approach, deletions are
+// handled by writing a special empty value (acting as a tombstone)
+// instead of removing the key directly.
+// This ensures the deletion is recorded and can be processed during compaction.
+func (m *MemTable) Delete(key string) {
+	m.Put(key, "")
 }
 
 func (m *MemTable) Flush(filename string) error {
@@ -49,13 +62,13 @@ func (m *MemTable) Flush(filename string) error {
 
 	defer file.Close()
 
-	var index []int64
+	var indices []int64
 	for _, key := range keys {
 		pos, err := file.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return err
 		}
-		index = append(index, pos)
+		indices = append(indices, pos)
 
 		binary.Write(file, binary.LittleEndian, int32(len(key)))
 		file.Write([]byte(key))
@@ -66,7 +79,7 @@ func (m *MemTable) Flush(filename string) error {
 	}
 
 	idxPos, _ := file.Seek(0, io.SeekCurrent)
-	for _, pos := range index {
+	for _, pos := range indices {
 		binary.Write(file, binary.LittleEndian, pos)
 	}
 

@@ -2,6 +2,8 @@ package lsm
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGet(t *testing.T) {
@@ -12,19 +14,12 @@ func TestGet(t *testing.T) {
 	t.Run("value exists", func(t *testing.T) {
 		got, _ := lsm.Get("level")
 		want := "info"
-
-		if got != want {
-			t.Errorf("got %q want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("value doesn't exist", func(t *testing.T) {
-		_, got := lsm.Get("config")
-		want := false
-
-		if got != want {
-			t.Errorf("got %v want %v", got, want)
-		}
+		_, exists := lsm.Get("config")
+		assert.False(t, exists)
 	})
 
 }
