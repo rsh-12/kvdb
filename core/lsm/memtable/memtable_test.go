@@ -8,52 +8,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMemTable(t *testing.T) {
+func TestPut(t *testing.T) {
+	memTable := memtable.NewMemTable()
+	memTable.Put("profile", "dev")
 
-	t.Run("Put", func(t *testing.T) {
-		memTable := memtable.NewMemTable()
-		memTable.Put("profile", "dev")
+	got, _ := memTable.Get("profile")
+	want := "dev"
 
-		got, _ := memTable.Get("profile")
-		want := "dev"
+	assert.Equal(t, want, got)
+}
 
-		assert.Equal(t, want, got)
-	})
+func TestGet(t *testing.T) {
+	memTable := memtable.NewMemTable()
+	memTable.Put("profile", "local")
 
-	t.Run("Get", func(t *testing.T) {
-		memTable := memtable.NewMemTable()
-		memTable.Put("profile", "local")
+	got, exists := memTable.Get("profile")
+	want := "local"
 
-		got, exists := memTable.Get("profile")
-		want := "local"
+	assert.Equal(t, want, got)
+	assert.True(t, exists)
+}
 
-		assert.Equal(t, want, got)
-		assert.True(t, exists)
-	})
+func TestDelete(t *testing.T) {
+	key := "profile"
+	memTable := memtable.NewMemTable()
+	memTable.Put(key, "prod")
 
-	t.Run("Delete", func(t *testing.T) {
-		key := "profile"
-		memTable := memtable.NewMemTable()
-		memTable.Put(key, "prod")
+	memTable.Delete(key)
+	got, exists := memTable.Get(key)
 
-		memTable.Delete(key)
+	assert.Empty(t, got)
+	assert.True(t, exists)
+}
 
-		got, exists := memTable.Get(key)
-		want := ""
+func TestFlush(t *testing.T) {
+	memTable := memtable.NewMemTable()
+	memTable.Put("profile", "local")
 
-		assert.Equal(t, want, got)
-		assert.True(t, exists)
-	})
+	err := memTable.Flush("/tmp/sstable")
+	fileInfo, fileErr := os.Stat("/tmp/sstable")
+	defer os.Remove(fileInfo.Name())
 
-	t.Run("Flush", func(t *testing.T) {
-		memTable := memtable.NewMemTable()
-		memTable.Put("profile", "local")
-
-		err := memTable.Flush("/tmp/sstable")
-		fileInfo, fileErr := os.Stat("/tmp/sstable")
-		defer os.Remove(fileInfo.Name())
-
-		assert.NoError(t, err)
-		assert.NoError(t, fileErr)
-	})
+	assert.NoError(t, err)
+	assert.NoError(t, fileErr)
 }
