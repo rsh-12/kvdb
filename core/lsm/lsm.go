@@ -12,10 +12,11 @@ type LSMTree struct {
 	threshold int
 }
 
-var projectDir string
+var storageDir string
 
 func NewLSMTree(threshold int) *LSMTree {
-	projectDir = util.GetProjectDir()
+	storageDir = getStorageDir()
+	// TODO: restore sstables
 
 	return &LSMTree{
 		memTable:  NewMemTable(),
@@ -28,7 +29,7 @@ func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
 	if len(l.memTable.data) >= l.threshold {
-		filename := fmt.Sprintf("%v/core/lsm/data/sstable_%d", projectDir, len(l.sstables))
+		filename := fmt.Sprintf("%v/sstable_%d", storageDir, len(l.sstables))
 		if err := l.memTable.Flush(filename); err != nil {
 			log.Fatal("error flushing MemTable to sstable:", err)
 			return
@@ -38,15 +39,25 @@ func (l *LSMTree) Put(key, value string) {
 }
 
 func (l *LSMTree) Get(key string) (string, bool) {
+	// try to get the value from MemTable first
 	if value, exists := l.memTable.Get(key); exists {
 		return value, true
 	}
 
+	return l.searchInSstables(key)
+}
+
+func (l *LSMTree) searchInSstables(key string) (string, bool) {
 	for _, sstable := range l.sstables {
 		if value, exists := sstable.Get(key); exists {
 			return value, true
 		}
 	}
-
 	return "", false
+}
+
+func getStorageDir() string {
+	projectDir := util.GetProjectDir()
+	storageDir := fmt.Sprintf("%v/core/lsm/data", projectDir)
+	return storageDir
 }
