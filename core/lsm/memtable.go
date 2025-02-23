@@ -30,9 +30,6 @@ func (m *MemTable) Get(key string) (string, bool) {
 	defer m.mutex.Unlock()
 
 	value, exists := m.data[key]
-	if value == "" {
-		return "", false
-	}
 	return value, exists
 }
 

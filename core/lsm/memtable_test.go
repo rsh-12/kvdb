@@ -41,7 +41,7 @@ func TestMemTable(t *testing.T) {
 		want := ""
 
 		assert.Equal(t, want, got)
-		assert.False(t, exists)
+		assert.True(t, exists)
 	})
 
 	t.Run("Flush", func(t *testing.T) {

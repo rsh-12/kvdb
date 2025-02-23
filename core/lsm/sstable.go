@@ -48,9 +48,6 @@ func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
 		readKey := read(file)
 		if readKey == key {
 			value, exists := read(file), true
-			if value == "" {
-				break
-			}
 			return value, exists
 		} else if readKey < key {
 			low = mid + 1

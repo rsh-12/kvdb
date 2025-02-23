@@ -36,14 +36,14 @@ func TestSstable(t *testing.T) {
 		assert.Empty(t, got)
 	})
 
-	t.Run("tombsone", func(t *testing.T) {
+	t.Run("value exists, but marked as deleted", func(t *testing.T) {
 		sstable := setUp(func(mt *MemTable) {
 			mt.Delete("level")
 		})
 
 		value, exists := sstable.Get("level")
 
-		assert.False(t, exists)
+		assert.True(t, exists)
 		assert.Empty(t, value)
 	})
 

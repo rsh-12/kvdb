@@ -41,6 +41,9 @@ func (l *LSMTree) Put(key, value string) {
 func (l *LSMTree) Get(key string) (string, bool) {
 	// try to get the value from MemTable first
 	if value, exists := l.memTable.Get(key); exists {
+		if isTombstone(value) {
+			return "", false
+		}
 		return value, true
 	}
 
@@ -48,16 +51,27 @@ func (l *LSMTree) Get(key string) (string, bool) {
 }
 
 func (l *LSMTree) searchInSstables(key string) (string, bool) {
-	for _, sstable := range l.sstables {
-		if value, exists := sstable.Get(key); exists {
+	for i := len(l.sstables) - 1; i >= 0; i-- {
+		if value, exists := l.sstables[i].Get(key); exists {
+			if isTombstone(value) {
+				return "", false
+			}
 			return value, true
 		}
 	}
 	return "", false
 }
 
+func (l *LSMTree) Delete(key string) {
+	l.Put(key, "")
+}
+
 func getStorageDir() string {
 	projectDir := util.GetProjectDir()
 	storageDir := fmt.Sprintf("%v/core/lsm/data", projectDir)
 	return storageDir
+}
+
+func isTombstone(value string) bool {
+	return value == ""
 }
