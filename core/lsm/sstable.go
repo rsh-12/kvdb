@@ -45,9 +45,9 @@ func binarySearch(positions []int64, file *os.File, key string) (value string, e
 		mid := (low + high) / 2
 		file.Seek(positions[mid], io.SeekStart)
 
-		readKey := readKey(file)
+		readKey := read(file)
 		if readKey == key {
-			return readValue(file), true
+			return read(file), true
 		} else if readKey < key {
 			low = mid + 1
 		} else {
@@ -57,20 +57,11 @@ func binarySearch(positions []int64, file *os.File, key string) (value string, e
 	return
 }
 
-func readValue(file *os.File) (value string) {
-	var valueLen int32
-	binary.Read(file, binary.LittleEndian, &valueLen)
-	valueBytes := make([]byte, valueLen)
-	file.Read(valueBytes)
+func read(file *os.File) (value string) {
+	var halfLen int32
+	binary.Read(file, binary.LittleEndian, &halfLen)
+	bytes := make([]byte, halfLen)
+	file.Read(bytes)
 
-	return string(valueBytes)
-}
-
-func readKey(file *os.File) (key string) {
-	var keyLen int32
-	binary.Read(file, binary.LittleEndian, &keyLen)
-	keyBytes := make([]byte, keyLen)
-	file.Read(keyBytes)
-
-	return string(keyBytes)
+	return string(bytes)
 }
