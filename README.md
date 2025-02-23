@@ -1,9 +1,5 @@
 # KVDB - A Simple Key-Value Database
 
-<p align="center">
-  <img src="logo.png" alt="KVDB Logo" width="150" style="border-radius: 50%;">
-</p>
-
 
 **KVDB** is a lightweight and key-value store built for learning and experimentation. 
 It’s not meant for production.
@@ -27,11 +23,23 @@ It’s not meant for production.
 
 ## Getting Started
 
+#### Tests
+```go
+// Run all tests
+go test ./...
+
+// Run specific tests
+go test -run ^TestSstable kvdb/core/lsm
+
+// Run race condition detection tests
+go test -race kvdb/core/lsm
+
+// Generate test coverage report
+go test -cover -coverprofile=cvg.out kvdb/core/lsm
+go tool cover -html cvg.out -o report.html
+
+```
 
 
-## Contributing
+## Contributing 
 Feel free to fork this project and contribute! Open a pull request with improvements, bug fixes, or new features.
-
----
-🚀 **KVDB** – Because every fun project starts with a simple key-value store!
-

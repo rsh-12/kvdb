@@ -1,2 +1,5 @@
 core/lsm/data/*
 !core/lsm/data/.gitkeep
+
+*.out
+report.html
