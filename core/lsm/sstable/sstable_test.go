@@ -1,20 +1,21 @@
-package sstable
+package sstable_test
 
 import (
 	"testing"
 
 	"kvdb/core/lsm/memtable"
+	"kvdb/core/lsm/sstable"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSstable(t *testing.T) {
-	setUp := func(data func(*memtable.MemTable)) *SSTable {
+	setUp := func(data func(*memtable.MemTable)) *sstable.SSTable {
 		const path = "/tmp/sstable"
 		memTable := memtable.NewMemTable()
 		data(memTable)
 		memTable.Flush(path)
-		return NewSSTable(path)
+		return sstable.NewSSTable(path)
 	}
 
 	t.Run("value exists", func(t *testing.T) {

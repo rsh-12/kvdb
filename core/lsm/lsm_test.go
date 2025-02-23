@@ -1,20 +1,22 @@
-package lsm
+package lsm_test
 
 import (
 	"testing"
+
+	"kvdb/core/lsm"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLsm(t *testing.T) {
-	setUp := func(threshold int, enrich func(*LSMTree)) *LSMTree {
-		lsm := NewLSMTree(threshold)
+	setUp := func(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
+		lsm := lsm.NewLSMTree(threshold)
 		enrich(lsm)
 		return lsm
 	}
 
 	t.Run("value exists in memtable", func(t *testing.T) {
-		lsm := setUp(10, func(l *LSMTree) {
+		lsm := setUp(10, func(l *lsm.LSMTree) {
 			l.Put("level", "debug")
 		})
 
@@ -25,7 +27,7 @@ func TestLsm(t *testing.T) {
 	})
 
 	t.Run("value exists in sstable", func(t *testing.T) {
-		lsm := setUp(1, func(l *LSMTree) {
+		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
 
@@ -36,7 +38,7 @@ func TestLsm(t *testing.T) {
 	})
 
 	t.Run("value doesn't exist in sstable", func(t *testing.T) {
-		lsm := setUp(1, func(l *LSMTree) {
+		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
 
@@ -47,7 +49,7 @@ func TestLsm(t *testing.T) {
 	})
 
 	t.Run("delete value from MemTable", func(t *testing.T) {
-		lsm := setUp(5, func(l *LSMTree) {
+		lsm := setUp(5, func(l *lsm.LSMTree) {
 			l.Put("level", "warn")
 		})
 
@@ -59,7 +61,7 @@ func TestLsm(t *testing.T) {
 	})
 
 	t.Run("get deleted value", func(t *testing.T) {
-		lsm := setUp(1, func(l *LSMTree) {
+		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
 
@@ -72,7 +74,7 @@ func TestLsm(t *testing.T) {
 
 	t.Run("put value after deletion", func(t *testing.T) {
 		const key = "level"
-		lsm := setUp(1, func(l *LSMTree) {
+		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Delete(key)
 		})
 
