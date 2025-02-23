@@ -1,4 +1,4 @@
-package lsm
+package memtable
 
 import (
 	"encoding/binary"
@@ -84,4 +84,8 @@ func (m *MemTable) Flush(filename string) error {
 
 	m.data = make(map[string]string)
 	return nil
+}
+
+func (m *MemTable) Len() int {
+	return len(m.data)
 }

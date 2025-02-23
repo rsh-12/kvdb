@@ -2,13 +2,15 @@ package lsm
 
 import (
 	"fmt"
+	"kvdb/core/lsm/memtable"
+	"kvdb/core/lsm/sstable"
 	"kvdb/internal/util"
 	"log"
 )
 
 type LSMTree struct {
-	memTable  *MemTable
-	sstables  []*SSTable
+	memTable  *memtable.MemTable
+	sstables  []*sstable.SSTable
 	threshold int
 }
 
@@ -19,8 +21,8 @@ func NewLSMTree(threshold int) *LSMTree {
 	// TODO: restore sstables
 
 	return &LSMTree{
-		memTable:  NewMemTable(),
-		sstables:  make([]*SSTable, 0),
+		memTable:  memtable.NewMemTable(),
+		sstables:  make([]*sstable.SSTable, 0),
 		threshold: threshold,
 	}
 }
@@ -28,13 +30,13 @@ func NewLSMTree(threshold int) *LSMTree {
 func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
-	if len(l.memTable.data) >= l.threshold {
+	if l.memTable.Len() >= l.threshold {
 		filename := fmt.Sprintf("%v/sstable_%d", storageDir, len(l.sstables))
 		if err := l.memTable.Flush(filename); err != nil {
 			log.Fatal("error flushing MemTable to sstable:", err)
 			return
 		}
-		l.sstables = append(l.sstables, NewSSTable(filename))
+		l.sstables = append(l.sstables, sstable.NewSSTable(filename))
 	}
 }
 

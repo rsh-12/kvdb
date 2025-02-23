@@ -1,22 +1,24 @@
-package lsm
+package sstable
 
 import (
 	"testing"
+
+	"kvdb/core/lsm/memtable"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSstable(t *testing.T) {
-	setUp := func(data func(*MemTable)) *SSTable {
+	setUp := func(data func(*memtable.MemTable)) *SSTable {
 		const path = "/tmp/sstable"
-		memTable := NewMemTable()
+		memTable := memtable.NewMemTable()
 		data(memTable)
 		memTable.Flush(path)
 		return NewSSTable(path)
 	}
 
 	t.Run("value exists", func(t *testing.T) {
-		sstable := setUp(func(mt *MemTable) {
+		sstable := setUp(func(mt *memtable.MemTable) {
 			mt.Put("level", "info")
 		})
 
@@ -28,7 +30,7 @@ func TestSstable(t *testing.T) {
 	})
 
 	t.Run("value not found", func(t *testing.T) {
-		sstable := setUp(func(mt *MemTable) {})
+		sstable := setUp(func(mt *memtable.MemTable) {})
 
 		got, exists := sstable.Get("config")
 
@@ -37,7 +39,7 @@ func TestSstable(t *testing.T) {
 	})
 
 	t.Run("value exists, but marked as deleted", func(t *testing.T) {
-		sstable := setUp(func(mt *MemTable) {
+		sstable := setUp(func(mt *memtable.MemTable) {
 			mt.Delete("level")
 		})
 
