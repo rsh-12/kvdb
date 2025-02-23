@@ -9,16 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSstable(t *testing.T) {
-	setUp := func(data func(*memtable.MemTable)) *sstable.SSTable {
-		const path = "/tmp/sstable"
-		memTable := memtable.NewMemTable()
-		data(memTable)
-		memTable.Flush(path)
-		return sstable.NewSSTable(path)
-	}
+func TestGet(t *testing.T) {
 
-	t.Run("value exists", func(t *testing.T) {
+	t.Run("existing value", func(t *testing.T) {
 		sstable := setUp(func(mt *memtable.MemTable) {
 			mt.Put("level", "info")
 		})
@@ -30,7 +23,7 @@ func TestSstable(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 
-	t.Run("value not found", func(t *testing.T) {
+	t.Run("non-existent value", func(t *testing.T) {
 		sstable := setUp(func(mt *memtable.MemTable) {})
 
 		got, exists := sstable.Get("config")
@@ -39,7 +32,7 @@ func TestSstable(t *testing.T) {
 		assert.Empty(t, got)
 	})
 
-	t.Run("value exists, but marked as deleted", func(t *testing.T) {
+	t.Run("existing tombstone value", func(t *testing.T) {
 		sstable := setUp(func(mt *memtable.MemTable) {
 			mt.Delete("level")
 		})
@@ -49,5 +42,12 @@ func TestSstable(t *testing.T) {
 		assert.True(t, exists)
 		assert.Empty(t, value)
 	})
+}
 
+func setUp(data func(*memtable.MemTable)) *sstable.SSTable {
+	const path = "/tmp/sstable"
+	memTable := memtable.NewMemTable()
+	data(memTable)
+	memTable.Flush(path)
+	return sstable.NewSSTable(path)
 }
