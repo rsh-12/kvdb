@@ -8,14 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLsm(t *testing.T) {
-	setUp := func(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
-		lsm := lsm.NewLSMTree(threshold)
-		enrich(lsm)
-		return lsm
-	}
+func TestGet(t *testing.T) {
 
-	t.Run("value exists in memtable", func(t *testing.T) {
+	t.Run("existing in memtable value", func(t *testing.T) {
 		lsm := setUp(10, func(l *lsm.LSMTree) {
 			l.Put("level", "debug")
 		})
@@ -26,7 +21,7 @@ func TestLsm(t *testing.T) {
 		assert.True(t, exists)
 	})
 
-	t.Run("value exists in sstable", func(t *testing.T) {
+	t.Run("existing in sstable value", func(t *testing.T) {
 		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
@@ -37,7 +32,7 @@ func TestLsm(t *testing.T) {
 		assert.Equal(t, want, got)
 	})
 
-	t.Run("value doesn't exist in sstable", func(t *testing.T) {
+	t.Run("non-existent in sstable value", func(t *testing.T) {
 		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
@@ -47,8 +42,11 @@ func TestLsm(t *testing.T) {
 		assert.False(t, exists)
 		assert.Empty(t, value)
 	})
+}
 
-	t.Run("delete value from MemTable", func(t *testing.T) {
+func TestDelete(t *testing.T) {
+
+	t.Run("deleting value from memtable", func(t *testing.T) {
 		lsm := setUp(5, func(l *lsm.LSMTree) {
 			l.Put("level", "warn")
 		})
@@ -60,7 +58,7 @@ func TestLsm(t *testing.T) {
 		assert.False(t, exists)
 	})
 
-	t.Run("get deleted value", func(t *testing.T) {
+	t.Run("deleting value from sstable", func(t *testing.T) {
 		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Put("level", "info")
 		})
@@ -71,8 +69,11 @@ func TestLsm(t *testing.T) {
 		assert.Empty(t, value)
 		assert.False(t, exists)
 	})
+}
 
-	t.Run("put value after deletion", func(t *testing.T) {
+func TestPut(t *testing.T) {
+
+	t.Run("inserting value after deletion", func(t *testing.T) {
 		const key = "level"
 		lsm := setUp(1, func(l *lsm.LSMTree) {
 			l.Delete(key)
@@ -84,4 +85,10 @@ func TestLsm(t *testing.T) {
 		assert.Equal(t, "error", value)
 		assert.True(t, exists)
 	})
+}
+
+func setUp(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
+	lsm := lsm.NewLSMTree(threshold)
+	enrich(lsm)
+	return lsm
 }
