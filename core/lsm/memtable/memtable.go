@@ -3,7 +3,10 @@ package memtable
 import (
 	"encoding/binary"
 	"io"
+	"kvdb/core/lsm/iterator"
+	"kvdb/types"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 )
@@ -52,6 +55,7 @@ func (m *MemTable) Flush(filename string) error {
 	}
 	sort.Strings(keys)
 
+	os.Mkdir(filepath.Dir(filename), os.ModePerm)
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -88,4 +92,13 @@ func (m *MemTable) Flush(filename string) error {
 
 func (m *MemTable) Len() int {
 	return len(m.data)
+}
+
+func (m *MemTable) Iterator() (types.Iterator, error) {
+	items := make([]types.Item, 0)
+	for key, value := range m.data {
+		items = append(items, types.Item{Key: key, Value: value})
+	}
+
+	return iterator.NewMemTableIterator(items)
 }

@@ -3,6 +3,8 @@ package sstable
 import (
 	"encoding/binary"
 	"io"
+	"kvdb/core/lsm/iterator"
+	"kvdb/types"
 	"os"
 )
 
@@ -65,4 +67,8 @@ func read(file *os.File) (value string) {
 	file.Read(bytes)
 
 	return string(bytes)
+}
+
+func (s *SSTable) Iterator() (types.Iterator, error) {
+	return iterator.NewSstableIterator(s.filename)
 }

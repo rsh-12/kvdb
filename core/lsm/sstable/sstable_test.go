@@ -1,10 +1,13 @@
 package sstable_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"kvdb/core/lsm/memtable"
 	"kvdb/core/lsm/sstable"
+	"kvdb/internal/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,6 +45,8 @@ func TestGet(t *testing.T) {
 		assert.True(t, exists)
 		assert.Empty(t, value)
 	})
+
+	clear()
 }
 
 func setUp(data func(*memtable.MemTable)) *sstable.SSTable {
@@ -50,4 +55,8 @@ func setUp(data func(*memtable.MemTable)) *sstable.SSTable {
 	data(memTable)
 	memTable.Flush(path)
 	return sstable.NewSSTable(path)
+}
+
+func clear() {
+	os.RemoveAll(filepath.Join(util.GetProjectDir(), "test_data"))
 }

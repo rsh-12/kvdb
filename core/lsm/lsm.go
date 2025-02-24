@@ -6,6 +6,7 @@ import (
 	"kvdb/core/lsm/sstable"
 	"kvdb/internal/config"
 	"kvdb/internal/util"
+	"kvdb/types"
 	"log"
 	"path/filepath"
 )
@@ -77,4 +78,33 @@ func getStorageDir(storageDir string) string {
 
 func isTombstone(value string) bool {
 	return value == ""
+}
+
+func (l *LSMTree) OpenIterators() ([]types.Iterator, error) {
+	iterators := make([]types.Iterator, 0, len(l.sstables)+1)
+
+	// add memtable iterator first
+	memIterator, err := l.memTable.Iterator()
+	if err != nil {
+		return nil, err
+	}
+	iterators = append(iterators, memIterator)
+
+	// add sstable iterators in reverse order
+	for i := len(l.sstables) - 1; i >= 0; i-- {
+		sstIterator, err := l.sstables[i].Iterator()
+		if err != nil {
+			close(iterators)
+			return nil, err
+		}
+		iterators = append(iterators, sstIterator)
+	}
+
+	return iterators, nil
+}
+
+func close(iterators []types.Iterator) {
+	for _, it := range iterators {
+		it.Close()
+	}
 }

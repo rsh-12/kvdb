@@ -8,6 +8,7 @@ import (
 	"kvdb/core/lsm"
 	"kvdb/internal/config"
 	"kvdb/internal/util"
+	"kvdb/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -89,6 +90,8 @@ func TestPut(t *testing.T) {
 		assert.Equal(t, "error", value)
 		assert.True(t, exists)
 	})
+
+	tests.ClearTestData()
 }
 
 func setUp(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
