@@ -3,3 +3,4 @@ core/lsm/data/*
 
 *.out
 report.html
+test_data

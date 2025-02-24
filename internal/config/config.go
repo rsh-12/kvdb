@@ -23,7 +23,8 @@ type HTTPServer struct {
 }
 
 type Core struct {
-	Capacity int `yaml:"capacity" env-required:"true"`
+	Threshold  int    `yaml:"threshold" env-required:"true"`
+	StorageDir string `yaml:"storage_dir" env-required:"true"`
 }
 
 func MustLoad() *Config {
@@ -41,4 +42,8 @@ func MustLoad() *Config {
 	}
 
 	return &cfg
+}
+
+func (c *Config) SetThreshold(threshold int) {
+	c.Core.Threshold = threshold
 }

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"kvdb/core/lsm/memtable"
 	"kvdb/core/lsm/sstable"
+	"kvdb/internal/config"
 	"kvdb/internal/util"
 	"log"
+	"path/filepath"
 )
 
 type LSMTree struct {
@@ -16,14 +18,14 @@ type LSMTree struct {
 
 var storageDir string
 
-func NewLSMTree(threshold int) *LSMTree {
-	storageDir = getStorageDir()
+func NewLSMTree(cfg *config.Config) *LSMTree {
+	storageDir = getStorageDir(cfg.Core.StorageDir)
 	// TODO: restore sstables
 
 	return &LSMTree{
 		memTable:  memtable.NewMemTable(),
 		sstables:  make([]*sstable.SSTable, 0),
-		threshold: threshold,
+		threshold: cfg.Core.Threshold,
 	}
 }
 
@@ -31,7 +33,7 @@ func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
 	if l.memTable.Len() >= l.threshold {
-		filename := fmt.Sprintf("%v/sstable_%d", storageDir, len(l.sstables))
+		filename := filepath.Join(storageDir, fmt.Sprintf("sstable_%d", len(l.sstables)))
 		if err := l.memTable.Flush(filename); err != nil {
 			log.Fatal("error flushing MemTable to sstable:", err)
 			return
@@ -68,10 +70,9 @@ func (l *LSMTree) Delete(key string) {
 	l.Put(key, "")
 }
 
-func getStorageDir() string {
+func getStorageDir(storageDir string) string {
 	projectDir := util.GetProjectDir()
-	storageDir := fmt.Sprintf("%v/core/lsm/data", projectDir)
-	return storageDir
+	return filepath.Join(projectDir, storageDir)
 }
 
 func isTombstone(value string) bool {

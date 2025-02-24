@@ -1,9 +1,13 @@
 package lsm_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"kvdb/core/lsm"
+	"kvdb/internal/config"
+	"kvdb/internal/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -88,7 +92,13 @@ func TestPut(t *testing.T) {
 }
 
 func setUp(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
-	lsm := lsm.NewLSMTree(threshold)
+	properties := filepath.Join(util.GetProjectDir(), "config/test.yaml")
+	os.Setenv("CONFIG_PATH", properties)
+
+	cfg := config.MustLoad()
+	cfg.SetThreshold(threshold)
+
+	lsm := lsm.NewLSMTree(cfg)
 	enrich(lsm)
 	return lsm
 }

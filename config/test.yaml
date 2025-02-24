@@ -1,9 +1,9 @@
-env: "local"
+env: "test"
 http_server:
   address: "localhost:8080"
   timeout: 5s
   idle_timeout: 30s
 core:
-  threshold: 100
-  storage_dir: "/core/lsm/data"
+  threshold: 10
+  storage_dir: "/test_data"
   
