@@ -6,6 +6,7 @@ import (
 	"kvdb/internal/config"
 	"kvdb/internal/util"
 	"kvdb/tests"
+	"kvdb/types"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,10 +15,11 @@ import (
 )
 
 func TestPaginate(t *testing.T) {
-	setUp := func() *lsm.LSMTree {
+	setUp := func(threshold int) *lsm.LSMTree {
 		os.Setenv("CONFIG_PATH", filepath.Join(util.GetProjectDir(), "config/test.yaml"))
+
 		cfg := config.MustLoad()
-		cfg.SetThreshold(2)
+		cfg.SetThreshold(threshold)
 
 		lsm := lsm.NewLSMTree(cfg)
 		lsm.Put("level", "info")
@@ -25,54 +27,63 @@ func TestPaginate(t *testing.T) {
 		return lsm
 	}
 
+	assertItems := func(t testing.TB, items []types.Item, expectedItems []types.Item) {
+		t.Helper()
+
+		assert.Equal(t, len(expectedItems), len(items))
+		for i, expected := range expectedItems {
+			assert.Equal(t, expected.Key, items[i].Key)
+			assert.Equal(t, expected.Value, items[i].Value)
+		}
+	}
+
 	t.Run("get up to 10 records", func(t *testing.T) {
-		lsm := setUp()
+		lsm := setUp(2)
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
 		assert.Nil(t, err)
-		assert.Equal(t, 2, len(items))
-		assert.Equal(t, "level", items[0].Key)
-		assert.Equal(t, "info", items[0].Value)
-		assert.Equal(t, "profile", items[1].Key)
-		assert.Equal(t, "dev", items[1].Value)
+		assertItems(t, items, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+		})
 	})
 
 	t.Run("skip 1 record", func(t *testing.T) {
-		lsm := setUp()
+		lsm := setUp(2)
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 1})
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(items))
-		assert.Equal(t, "profile", items[0].Key)
-		assert.Equal(t, "dev", items[0].Value)
+		assertItems(t, items, []types.Item{
+			{Key: "profile", Value: "dev"},
+		})
 	})
 
 	t.Run("get records from memtable and sstables", func(t *testing.T) {
-		lsm := setUp()
+		lsm := setUp(2)
 		lsm.Put("scheduling.enabled", "false")
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
 		assert.Nil(t, err)
-		assert.Equal(t, 3, len(items))
-		assert.Equal(t, "level", items[0].Key)
-		assert.Equal(t, "info", items[0].Value)
-		assert.Equal(t, "profile", items[1].Key)
-		assert.Equal(t, "dev", items[1].Value)
-		assert.Equal(t, "scheduling.enabled", items[2].Key)
-		assert.Equal(t, "false", items[2].Value)
+		assertItems(t, items, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+			{Key: "scheduling.enabled", Value: "false"},
+		})
 	})
 
 	t.Run("handle deleted in memtable value", func(t *testing.T) {
-		lsm := setUp()
+		lsm := setUp(2)
 		lsm.Delete("level")
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(items))
+		assertItems(t, items, []types.Item{
+			{Key: "profile", Value: "dev"},
+		})
 	})
 
 	tests.ClearTestData()
