@@ -55,7 +55,7 @@ func (m *MemTable) Flush(filename string) error {
 	}
 	sort.Strings(keys)
 
-	os.Mkdir(filepath.Dir(filename), os.ModePerm)
+	os.MkdirAll(filepath.Dir(filename), os.ModePerm)
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
