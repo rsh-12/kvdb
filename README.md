@@ -35,7 +35,7 @@ go test -run ^TestSstable kvdb/core/lsm
 go test -race kvdb/core/lsm
 
 // Generate test coverage report
-go test -cover -coverprofile=cvg.out kvdb/core/lsm
+go test -cover -coverprofile=cvg.out kvdb/core/lsm/...
 go tool cover -html cvg.out -o report.html
 
 ```
