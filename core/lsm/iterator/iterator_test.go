@@ -3,7 +3,6 @@ package iterator_test
 import (
 	"kvdb/core/lsm/iterator"
 	"kvdb/core/lsm/memtable"
-	"kvdb/tests"
 	"kvdb/types"
 	"testing"
 
@@ -22,8 +21,6 @@ func TestSstableIterator(t *testing.T) {
 		{Key: "level", Value: "info"},
 		{Key: "profile", Value: "staging"},
 	})
-
-	tests.ClearTestData()
 }
 
 func TestMemtableIterator(t *testing.T) {

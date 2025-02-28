@@ -95,9 +95,20 @@ func (m *MemTable) Len() int {
 }
 
 func (m *MemTable) Iterator() (types.Iterator, error) {
-	items := make([]types.Item, 0)
-	for key, value := range m.data {
-		items = append(items, types.Item{Key: key, Value: value})
+	keys := make([]string, 0, m.Len())
+	items := make([]types.Item, 0, m.Len())
+
+	// collect and sort keys
+	for key := range m.data {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		items = append(items, types.Item{
+			Key:   key,
+			Value: m.data[key],
+		})
 	}
 
 	return iterator.NewMemTableIterator(items)
