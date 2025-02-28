@@ -15,15 +15,16 @@ import (
 )
 
 func TestPaginate(t *testing.T) {
-	setUp := func(threshold int) *lsm.LSMTree {
+	setUp := func(threshold int, items []types.Item) *lsm.LSMTree {
 		os.Setenv("CONFIG_PATH", filepath.Join(util.GetProjectDir(), "config/test.yaml"))
 
 		cfg := config.MustLoad()
 		cfg.SetThreshold(threshold)
 
 		lsm := lsm.NewLSMTree(cfg)
-		lsm.Put("level", "info")
-		lsm.Put("profile", "dev")
+		for _, item := range items {
+			lsm.Put(item.Key, item.Value)
+		}
 		return lsm
 	}
 
@@ -38,7 +39,10 @@ func TestPaginate(t *testing.T) {
 	}
 
 	t.Run("get up to 10 records", func(t *testing.T) {
-		lsm := setUp(2)
+		lsm := setUp(2, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+		})
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
@@ -50,7 +54,10 @@ func TestPaginate(t *testing.T) {
 	})
 
 	t.Run("skip 1 record", func(t *testing.T) {
-		lsm := setUp(2)
+		lsm := setUp(2, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+		})
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 1})
 
@@ -61,8 +68,11 @@ func TestPaginate(t *testing.T) {
 	})
 
 	t.Run("get records from memtable and sstables", func(t *testing.T) {
-		lsm := setUp(2)
-		lsm.Put("scheduling.enabled", "false")
+		lsm := setUp(2, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+			{Key: "scheduling.enabled", Value: "false"},
+		})
 
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
@@ -75,9 +85,12 @@ func TestPaginate(t *testing.T) {
 	})
 
 	t.Run("handle deleted in memtable value", func(t *testing.T) {
-		lsm := setUp(2)
-		lsm.Delete("level")
+		lsm := setUp(2, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+		})
 
+		lsm.Delete("level")
 		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
 
 		assert.Nil(t, err)
