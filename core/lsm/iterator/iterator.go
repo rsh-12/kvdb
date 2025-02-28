@@ -1,8 +1,8 @@
 package iterator
 
 import (
-	"encoding/binary"
 	"io"
+	"kvdb/internal/util"
 	"kvdb/types"
 	"os"
 )
@@ -50,7 +50,7 @@ func NewSstableIterator(filename string) (*SstableIterator, error) {
 		return nil, err
 	}
 
-	positions, err := readIndexBlock(file)
+	positions, err := util.ReadIndexBlock(file)
 	if err != nil {
 		file.Close()
 		return nil, err
@@ -63,25 +63,6 @@ func NewSstableIterator(filename string) (*SstableIterator, error) {
 	}, nil
 }
 
-func readIndexBlock(file *os.File) ([]int64, error) {
-	var idxPos int64
-	file.Seek(-8, io.SeekEnd)
-	binary.Read(file, binary.LittleEndian, &idxPos)
-
-	file.Seek(idxPos, io.SeekStart)
-	var positions []int64
-	for {
-		var pos int64
-		err := binary.Read(file, binary.LittleEndian, &pos)
-		if err != nil {
-			break
-		}
-		positions = append(positions, pos)
-	}
-
-	return positions, nil
-}
-
 func (s *SstableIterator) Next() (item types.Item, err error) {
 	if !s.HasNext() {
 		return
@@ -91,8 +72,8 @@ func (s *SstableIterator) Next() (item types.Item, err error) {
 	s.file.Seek(pos, io.SeekStart)
 
 	item = types.Item{
-		Key:   read(s.file),
-		Value: read(s.file),
+		Key:   util.ReadBytes(s.file),
+		Value: util.ReadBytes(s.file),
 	}
 
 	s.index++
@@ -106,13 +87,4 @@ func (s *SstableIterator) HasNext() bool {
 
 func (s *SstableIterator) Close() error {
 	return s.file.Close()
-}
-
-func read(file *os.File) (value string) {
-	var halfLen int32
-	binary.Read(file, binary.LittleEndian, &halfLen)
-	bytes := make([]byte, halfLen)
-	file.Read(bytes)
-
-	return string(bytes)
 }

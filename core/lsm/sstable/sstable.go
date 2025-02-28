@@ -1,10 +1,11 @@
 package sstable
 
 import (
-	"encoding/binary"
 	"io"
 	"kvdb/core/lsm/iterator"
+	"kvdb/internal/util"
 	"kvdb/types"
+	"log"
 	"os"
 )
 
@@ -23,19 +24,10 @@ func (s *SSTable) Get(key string) (value string, exists bool) {
 	}
 	defer file.Close()
 
-	var idxPos int64
-	file.Seek(-8, io.SeekEnd)
-	binary.Read(file, binary.LittleEndian, &idxPos)
-
-	file.Seek(idxPos, io.SeekStart)
-	var positions []int64
-	for {
-		var pos int64
-		err := binary.Read(file, binary.LittleEndian, &pos)
-		if err != nil {
-			break
-		}
-		positions = append(positions, pos)
+	positions, err := util.ReadIndexBlock(file)
+	if err != nil {
+		file.Close()
+		log.Fatal("error reading index block:", err)
 	}
 
 	return binarySearch(positions, file, key)
@@ -47,9 +39,9 @@ func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
 		mid := (low + high) / 2
 		file.Seek(positions[mid], io.SeekStart)
 
-		readKey := read(file)
+		readKey := util.ReadBytes(file)
 		if readKey == key {
-			value, exists := read(file), true
+			value, exists := util.ReadBytes(file), true
 			return value, exists
 		} else if readKey < key {
 			low = mid + 1
@@ -58,15 +50,6 @@ func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-func read(file *os.File) (value string) {
-	var halfLen int32
-	binary.Read(file, binary.LittleEndian, &halfLen)
-	bytes := make([]byte, halfLen)
-	file.Read(bytes)
-
-	return string(bytes)
 }
 
 func (s *SSTable) Iterator() (types.Iterator, error) {
