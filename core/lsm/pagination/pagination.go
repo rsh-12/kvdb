@@ -4,16 +4,22 @@ import (
 	"container/heap"
 	"kvdb/core/lsm"
 	"kvdb/types"
+	"log"
 )
 
 type Queue struct {
-	entries []Entry
+	entries     []Entry
+	tombestones map[string]bool
 }
 
 type Entry struct {
 	item  types.Item
 	iter  types.Iterator
 	index int
+}
+
+func (q *Queue) isTombstone(key string) bool {
+	return q.tombestones[key]
 }
 
 func (q *Queue) Len() int {
@@ -36,7 +42,7 @@ func (q *Queue) Pop() any {
 	return entry
 }
 
-func (q *Queue) Push(x interface{}) {
+func (q *Queue) Push(x any) {
 	q.entries = append(q.entries, x.(Entry))
 }
 
@@ -52,54 +58,74 @@ func Paginate(lsm *lsm.LSMTree, page Page) ([]types.Item, error) {
 	}
 	defer close(iterators)
 
+	queue, err := initQueue(iterators)
+	if err != nil {
+		return nil, err
+	}
+
+	return processQueue(queue, page), nil
+}
+
+func initQueue(iterators []types.Iterator) (*Queue, error) {
 	queue := &Queue{}
+	queue.tombestones = map[string]bool{}
 	heap.Init(queue)
-	tombstones := make(map[string]bool)
 
-	initQueue(queue, iterators, tombstones)
+	for i, it := range iterators {
+		if it.HasNext() {
+			item, err := it.Next()
+			if err != nil {
+				return nil, err
+			}
 
+			heap.Push(queue, Entry{
+				item:  item,
+				iter:  it,
+				index: i,
+			})
+
+			if queue.isTombstone(item.Key) {
+				queue.tombestones[item.Key] = true
+			}
+		}
+	}
+
+	return queue, nil
+}
+
+func processQueue(queue *Queue, page Page) []types.Item {
 	var result []types.Item
+	seenKeys := make(map[string]bool)
 	count := 0
 
-	for queue.Len() > 0 {
+	for queue.Len() > 0 && count < page.Offset+page.Limit {
 		entry := heap.Pop(queue).(Entry)
+		item := entry.item
 
-		if tombstones[entry.item.Key] {
+		if seenKeys[item.Key] || queue.isTombstone(item.Key) {
 			pushNextItem(queue, entry)
 			continue
 		}
 
-		if count >= page.Offset && count < page.Offset+page.Limit {
-			result = append(result, entry.item)
+		if count >= page.Offset {
+			result = append(result, item)
+			seenKeys[item.Key] = true
 		}
 		count++
 
 		pushNextItem(queue, entry)
 	}
 
-	clear(tombstones)
-	return result, nil
-}
-
-func initQueue(queue *Queue, iterators []types.Iterator, tombstones map[string]bool) {
-	for i, it := range iterators {
-		if it.HasNext() {
-			item, _ := it.Next()
-			if item.Value == "" && !tombstones[item.Key] {
-				tombstones[item.Key] = true
-			}
-			heap.Push(queue, Entry{
-				item:  item,
-				iter:  it,
-				index: i,
-			})
-		}
-	}
+	return result
 }
 
 func pushNextItem(queue *Queue, entry Entry) {
 	if entry.iter.HasNext() {
-		item, _ := entry.iter.Next()
+		item, err := entry.iter.Next()
+		if err != nil {
+			log.Fatal("error pushing next item:", err)
+		}
+
 		heap.Push(queue, Entry{
 			item:  item,
 			iter:  entry.iter,

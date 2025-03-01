@@ -99,5 +99,21 @@ func TestPaginate(t *testing.T) {
 		})
 	})
 
+	t.Run("handle updated in memtable value", func(t *testing.T) {
+		lsm := setUp(2, []types.Item{
+			{Key: "level", Value: "info"},
+			{Key: "profile", Value: "dev"},
+		})
+
+		lsm.Put("level", "warn")
+		items, err := pagination.Paginate(lsm, pagination.Page{Limit: 10, Offset: 0})
+
+		assert.Nil(t, err)
+		assertItems(t, items, []types.Item{
+			{Key: "level", Value: "warn"},
+			{Key: "profile", Value: "dev"},
+		})
+	})
+
 	tests.ClearTestData()
 }
