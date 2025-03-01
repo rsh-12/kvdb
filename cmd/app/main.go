@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"kvdb/core/lsm"
 	"kvdb/internal/config"
+	"kvdb/internal/http-server/handlers/data/get"
 	"kvdb/internal/http-server/handlers/data/save"
+	"kvdb/internal/http-server/handlers/data/scan"
 	"kvdb/internal/http-server/middleware/logger"
 	"log/slog"
 	"net/http"
@@ -25,6 +28,8 @@ const (
 func main() {
 	cfg := config.MustLoad()
 
+	lsm := lsm.NewLSMTree(cfg)
+
 	log := setupLogger(cfg.Env)
 	log = log.With(slog.String("env", cfg.Env))
 
@@ -39,8 +44,10 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Route("/api", func(r chi.Router) {
-		r.Post("/", save.New(log))
+	router.Route("/api/v1", func(r chi.Router) {
+		r.Post("/values", save.New(log, lsm))
+		r.Get("/values", get.New(log, lsm))
+		r.Get("/values/scan", scan.New(log, lsm))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))

@@ -3,6 +3,7 @@ package save
 import (
 	"errors"
 	"io"
+	"kvdb/core/lsm"
 	res "kvdb/internal/lib/api/response"
 	"kvdb/sl"
 	"log/slog"
@@ -14,19 +15,15 @@ import (
 )
 
 type Request struct {
-	Key   string `json:"key" validate:"required,key"`
-	Value string `json:"value" validate:"required,value"`
+	Key   string `json:"key" validate:"required"`
+	Value string `json:"value" validate:"required"`
 }
 
 type Response struct {
 	res.Response
 }
 
-type DataSaver interface {
-	SaveData(key, value string) (int64, error)
-}
-
-func New(log *slog.Logger) http.HandlerFunc {
+func New(log *slog.Logger, lsm *lsm.LSMTree) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.data.save.New"
 
@@ -61,7 +58,7 @@ func New(log *slog.Logger) http.HandlerFunc {
 			return
 		}
 
-		// TODO: save data
+		lsm.Put(req.Key, req.Value)
 
 		responseOk(w, r)
 	}
