@@ -84,7 +84,7 @@ func initQueue(iterators []types.Iterator) (*Queue, error) {
 				index: i,
 			})
 
-			if queue.isTombstone(item.Key) {
+			if item.Value == "" {
 				queue.tombestones[item.Key] = true
 			}
 		}
