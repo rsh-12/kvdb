@@ -13,7 +13,7 @@ import (
 
 type Response struct {
 	res.Response
-	Value string
+	Value string `json:"value"`
 }
 
 func New(log *slog.Logger, lsm *lsm.LSMTree) http.HandlerFunc {
