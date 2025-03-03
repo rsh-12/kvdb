@@ -15,7 +15,7 @@ import (
 
 type Response struct {
 	res.Response
-	Items []types.Item
+	Items []types.Item `json:"items"`
 }
 
 func New(log *slog.Logger, lsm *lsm.LSMTree) http.HandlerFunc {
