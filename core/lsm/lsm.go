@@ -2,12 +2,14 @@ package lsm
 
 import (
 	"fmt"
+	"io/fs"
 	"kvdb/core/lsm/memtable"
 	"kvdb/core/lsm/sstable"
 	"kvdb/internal/config"
 	"kvdb/internal/util"
 	"kvdb/types"
 	"log"
+	"os"
 	"path/filepath"
 )
 
@@ -21,25 +23,41 @@ var storageDir string
 
 func NewLSMTree(cfg *config.Config) *LSMTree {
 	storageDir = getStorageDir(cfg.Core.StorageDir)
-	// TODO: restore sstables
+	sstables := restoreSstables()
 
 	return &LSMTree{
 		memTable:  memtable.NewMemTable(),
-		sstables:  make([]*sstable.SSTable, 0),
+		sstables:  sstables,
 		threshold: cfg.Core.Threshold,
 	}
+}
+
+func restoreSstables() []*sstable.SSTable {
+	var sstables []*sstable.SSTable
+
+	err := filepath.Walk(storageDir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			log.Fatalf("error accessing path %q: %v\n", path, err)
+			return nil
+		}
+		if !info.IsDir() {
+			sstables = append(sstables, sstable.NewSSTable(path))
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatalf("error restoring sstables: %v\n", err)
+	}
+
+	return sstables
 }
 
 func (l *LSMTree) Put(key, value string) {
 	l.memTable.Put(key, value)
 
 	if l.memTable.Len() >= l.threshold {
-		filename := filepath.Join(storageDir, fmt.Sprintf("sstable_%d", len(l.sstables)))
-		if err := l.memTable.Flush(filename); err != nil {
-			log.Fatal("error flushing MemTable to sstable:", err)
-			return
-		}
-		l.sstables = append(l.sstables, sstable.NewSSTable(filename))
+		flush(l)
 	}
 }
 
@@ -71,9 +89,35 @@ func (l *LSMTree) Delete(key string) {
 	l.Put(key, "")
 }
 
+func (l *LSMTree) Flush() error {
+	if l.memTable.Len() == 0 {
+		return nil
+	}
+	return flush(l)
+}
+
+func flush(l *LSMTree) error {
+	filename := filepath.Join(storageDir, fmt.Sprintf("sstable_%d", len(l.sstables)))
+	if err := l.memTable.Flush(filename); err != nil {
+		log.Fatal("error flushing MemTable to sstable:", err)
+		return err
+	}
+
+	l.sstables = append(l.sstables, sstable.NewSSTable(filename))
+	return nil
+}
+
 func getStorageDir(storageDir string) string {
 	projectDir := util.GetProjectDir()
-	return filepath.Join(projectDir, storageDir)
+	storage := filepath.Join(projectDir, storageDir)
+
+	if _, err := os.Stat(storage); os.IsNotExist(err) {
+		err := os.MkdirAll(storage, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return storage
 }
 
 func isTombstone(value string) bool {

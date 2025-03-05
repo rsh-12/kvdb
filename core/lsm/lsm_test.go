@@ -94,6 +94,27 @@ func TestPut(t *testing.T) {
 	tests.ClearTestData()
 }
 
+func TestFlush(t *testing.T) {
+	lsm := setUp(10, func(l *lsm.LSMTree) {
+		l.Put("level", "debug")
+	})
+
+	err := lsm.Flush()
+
+	assertFile(t, err)
+
+	value, exists := lsm.Get("level")
+	assert.True(t, exists)
+	assert.Equal(t, "debug", value)
+}
+
+func assertFile(t *testing.T, err error) {
+	assert.Nil(t, err)
+	sstablePath := filepath.Join(util.GetProjectDir(), "test_data", "sstable_0")
+	_, err = os.Stat(sstablePath)
+	assert.Nil(t, err)
+}
+
 func setUp(threshold int, enrich func(*lsm.LSMTree)) *lsm.LSMTree {
 	properties := filepath.Join(util.GetProjectDir(), "config/test.yaml")
 	os.Setenv("CONFIG_PATH", properties)

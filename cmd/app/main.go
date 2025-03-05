@@ -82,6 +82,13 @@ func main() {
 		return
 	}
 
+	log.Debug("flushing MemTable")
+
+	err := lsm.Flush()
+	if err != nil {
+		log.Error("failed to flush MemTable")
+	}
+
 	log.Info("server stopped")
 }
 

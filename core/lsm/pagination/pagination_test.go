@@ -36,6 +36,8 @@ func TestPaginate(t *testing.T) {
 			assert.Equal(t, expected.Key, items[i].Key)
 			assert.Equal(t, expected.Value, items[i].Value)
 		}
+
+		tests.ClearTestData()
 	}
 
 	t.Run("get up to 10 records", func(t *testing.T) {
