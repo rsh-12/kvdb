@@ -20,6 +20,7 @@ It’s not meant for production.
 - [ ] REST API
 - [ ] Type support
 - [ ] Docker
+- [ ] Monitoring
 
 ## Getting Started
 
