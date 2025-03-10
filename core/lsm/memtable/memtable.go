@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"io"
 	"kvdb/core/lsm/iterator"
+	"kvdb/core/errors"
 	"kvdb/types"
 	"os"
 	"path/filepath"
@@ -28,12 +29,20 @@ func (m *MemTable) Put(key, value string) {
 	m.data[key] = value
 }
 
-func (m *MemTable) Get(key string) (string, bool) {
+func (m *MemTable) Get(key string) (string, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	value, exists := m.data[key]
-	return value, exists
+
+	switch {
+	case exists && value == "":
+		return "", errors.ErrTombstone
+	case !exists:
+		return "", errors.ErrNotFound
+	default:
+		return value, nil
+	}
 }
 
 // Delete marks a key as deleted by inserting an empty value.

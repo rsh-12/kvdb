@@ -7,6 +7,7 @@ import (
 
 	"kvdb/core/lsm/memtable"
 	"kvdb/core/lsm/sstable"
+	"kvdb/core/errors"
 	"kvdb/internal/util"
 
 	"github.com/stretchr/testify/assert"
@@ -19,19 +20,19 @@ func TestGet(t *testing.T) {
 			mt.Put("level", "info")
 		})
 
-		got, exists := sstable.Get("level")
+		got, err := sstable.Get("level")
 		want := "info"
 
-		assert.True(t, exists)
+		assert.NoError(t, err)
 		assert.Equal(t, want, got)
 	})
 
 	t.Run("non-existent value", func(t *testing.T) {
 		sstable := setUp(func(mt *memtable.MemTable) {})
 
-		got, exists := sstable.Get("config")
+		got, err := sstable.Get("config")
 
-		assert.False(t, exists)
+		assert.ErrorIs(t, err, errors.ErrNotFound)
 		assert.Empty(t, got)
 	})
 
@@ -40,9 +41,9 @@ func TestGet(t *testing.T) {
 			mt.Delete("level")
 		})
 
-		value, exists := sstable.Get("level")
+		value, err := sstable.Get("level")
 
-		assert.True(t, exists)
+		assert.ErrorIs(t, err, errors.ErrTombstone)
 		assert.Empty(t, value)
 	})
 

@@ -27,8 +27,8 @@ func New(log *slog.Logger, lsm *lsm.LSMTree) http.HandlerFunc {
 
 		key := r.URL.Query().Get("key")
 
-		value, exists := lsm.Get(key)
-		if !exists {
+		value, err := lsm.Get(key)
+		if err != nil {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}

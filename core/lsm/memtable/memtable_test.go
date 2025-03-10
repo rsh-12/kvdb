@@ -2,6 +2,7 @@ package memtable_test
 
 import (
 	"kvdb/core/lsm/memtable"
+	"kvdb/core/errors"
 	"kvdb/tests"
 	"os"
 	"testing"
@@ -13,25 +14,22 @@ func TestPut(t *testing.T) {
 	memTable := memtable.NewMemTable()
 	memTable.Put("profile", "dev")
 
-	got, _ := memTable.Get("profile")
+	got, err := memTable.Get("profile")
 	want := "dev"
 
+	assert.NoError(t, err)
 	assert.Equal(t, want, got)
-
-	tests.ClearTestData()
 }
 
 func TestGet(t *testing.T) {
 	memTable := memtable.NewMemTable()
 	memTable.Put("profile", "local")
 
-	got, exists := memTable.Get("profile")
+	got, err := memTable.Get("profile")
 	want := "local"
 
+	assert.NoError(t, err)
 	assert.Equal(t, want, got)
-	assert.True(t, exists)
-
-	tests.ClearTestData()
 }
 
 func TestDelete(t *testing.T) {
@@ -40,12 +38,10 @@ func TestDelete(t *testing.T) {
 	memTable.Put(key, "prod")
 
 	memTable.Delete(key)
-	got, exists := memTable.Get(key)
+	got, err := memTable.Get(key)
 
+	assert.ErrorIs(t, err, errors.ErrTombstone)
 	assert.Empty(t, got)
-	assert.True(t, exists)
-
-	tests.ClearTestData()
 }
 
 func TestFlush(t *testing.T) {

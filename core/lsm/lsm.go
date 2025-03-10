@@ -3,6 +3,7 @@ package lsm
 import (
 	"fmt"
 	"io/fs"
+	"kvdb/core/errors"
 	"kvdb/core/lsm/memtable"
 	"kvdb/core/lsm/sstable"
 	"kvdb/internal/config"
@@ -61,28 +62,32 @@ func (l *LSMTree) Put(key, value string) {
 	}
 }
 
-func (l *LSMTree) Get(key string) (string, bool) {
-	// try to get the value from MemTable first
-	if value, exists := l.memTable.Get(key); exists {
-		if isTombstone(value) {
-			return "", false
-		}
-		return value, true
-	}
+func (l *LSMTree) Get(key string) (string, error) {
+	value, err := l.memTable.Get(key)
 
-	return l.searchInSstables(key)
+	switch err {
+	case errors.ErrNotFound:
+		return l.searchInSstables(key)
+	case errors.ErrTombstone:
+		return "", err
+	case nil:
+		return value, nil
+	default:
+		return "", err
+	}
 }
 
-func (l *LSMTree) searchInSstables(key string) (string, bool) {
+func (l *LSMTree) searchInSstables(key string) (string, error) {
 	for i := len(l.sstables) - 1; i >= 0; i-- {
-		if value, exists := l.sstables[i].Get(key); exists {
-			if isTombstone(value) {
-				return "", false
-			}
-			return value, true
+		value, err := l.sstables[i].Get(key)
+		if err == errors.ErrTombstone {
+			return "", err
+		}
+		if err == nil {
+			return value, nil
 		}
 	}
-	return "", false
+	return "", errors.ErrNotFound
 }
 
 func (l *LSMTree) Delete(key string) {
@@ -118,10 +123,6 @@ func getStorageDir(storageDir string) string {
 		}
 	}
 	return storage
-}
-
-func isTombstone(value string) bool {
-	return value == ""
 }
 
 func (l *LSMTree) OpenIterators() ([]types.Iterator, error) {

@@ -3,9 +3,9 @@ package sstable
 import (
 	"io"
 	"kvdb/core/lsm/iterator"
+	"kvdb/core/errors"
 	"kvdb/internal/util"
 	"kvdb/types"
-	"log"
 	"os"
 )
 
@@ -17,23 +17,29 @@ func NewSSTable(filename string) *SSTable {
 	return &SSTable{filename: filename}
 }
 
-func (s *SSTable) Get(key string) (value string, exists bool) {
+func (s *SSTable) Get(key string) (string, error) {
 	file, err := os.Open(s.filename)
 	if err != nil {
-		return
+		return "", err
 	}
 	defer file.Close()
 
 	positions, err := util.ReadIndexBlock(file)
 	if err != nil {
-		file.Close()
-		log.Fatal("error reading index block:", err)
+		return "", err
 	}
 
-	return binarySearch(positions, file, key)
+	value, err := binarySearch(positions, file, key)
+	if err != nil {
+		return "", err
+	}
+	if value == "" {
+		return "", errors.ErrTombstone
+	}
+	return value, nil
 }
 
-func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
+func binarySearch(positions []int64, file *os.File, key string) (string, error) {
 	low, high := 0, len(positions)-1
 	for low <= high {
 		mid := (low + high) / 2
@@ -41,15 +47,14 @@ func binarySearch(positions []int64, file *os.File, key string) (string, bool) {
 
 		readKey := util.ReadBytes(file)
 		if readKey == key {
-			value, exists := util.ReadBytes(file), true
-			return value, exists
+			return util.ReadBytes(file), nil
 		} else if readKey < key {
 			low = mid + 1
 		} else {
 			high = mid - 1
 		}
 	}
-	return "", false
+	return "", errors.ErrNotFound
 }
 
 func (s *SSTable) Iterator() (types.Iterator, error) {

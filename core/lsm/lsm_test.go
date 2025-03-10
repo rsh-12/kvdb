@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"kvdb/core/errors"
 	"kvdb/core/lsm"
 	"kvdb/internal/config"
 	"kvdb/internal/util"
@@ -20,10 +21,10 @@ func TestGet(t *testing.T) {
 			l.Put("level", "debug")
 		})
 
-		value, exists := lsm.Get("level")
+		value, err := lsm.Get("level")
 
+		assert.NoError(t, err)
 		assert.Equal(t, "debug", value)
-		assert.True(t, exists)
 	})
 
 	t.Run("existing in sstable value", func(t *testing.T) {
@@ -42,9 +43,9 @@ func TestGet(t *testing.T) {
 			l.Put("level", "info")
 		})
 
-		value, exists := lsm.Get("config")
+		value, err := lsm.Get("config")
 
-		assert.False(t, exists)
+		assert.ErrorIs(t, err, errors.ErrNotFound)
 		assert.Empty(t, value)
 	})
 }
@@ -57,10 +58,10 @@ func TestDelete(t *testing.T) {
 		})
 
 		lsm.Delete("level")
-		value, exists := lsm.Get("level")
+		value, err := lsm.Get("level")
 
+		assert.ErrorIs(t, err, errors.ErrTombstone)
 		assert.Empty(t, value)
-		assert.False(t, exists)
 	})
 
 	t.Run("deleting value from sstable", func(t *testing.T) {
@@ -69,10 +70,10 @@ func TestDelete(t *testing.T) {
 		})
 
 		lsm.Delete("level")
-		value, exists := lsm.Get("level")
+		value, err := lsm.Get("level")
 
+		assert.ErrorIs(t, err, errors.ErrTombstone)
 		assert.Empty(t, value)
-		assert.False(t, exists)
 	})
 }
 
@@ -85,10 +86,10 @@ func TestPut(t *testing.T) {
 		})
 
 		lsm.Put(key, "error")
-		value, exists := lsm.Get(key)
+		value, err := lsm.Get(key)
 
+		assert.NoError(t, err)
 		assert.Equal(t, "error", value)
-		assert.True(t, exists)
 	})
 
 	tests.ClearTestData()
@@ -99,12 +100,12 @@ func TestFlush(t *testing.T) {
 		l.Put("level", "debug")
 	})
 
-	err := lsm.Flush()
+	flushErr := lsm.Flush()
+	assertFile(t, flushErr)
 
-	assertFile(t, err)
+	value, err := lsm.Get("level")
 
-	value, exists := lsm.Get("level")
-	assert.True(t, exists)
+	assert.NoError(t, err)
 	assert.Equal(t, "debug", value)
 }
 
