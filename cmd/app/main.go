@@ -17,12 +17,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
-	envLocal = "local"
-	envDev   = "dev"
-	envProd  = "prod"
+	envDocker = "docker"
+	envLocal  = "local"
+	envDev    = "dev"
+	envProd   = "prod"
 )
 
 func main() {
@@ -43,6 +45,8 @@ func main() {
 	router.Use(logger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
+
+	router.Handle("/metrics", promhttp.Handler())
 
 	router.Route("/api/v1", func(r chi.Router) {
 		r.Post("/values", save.New(log, lsm))
@@ -66,6 +70,7 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			log.Error("failed to start server")
+			panic(err)
 		}
 	}()
 
@@ -96,7 +101,7 @@ func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
-	case envLocal:
+	case envLocal, envDocker:
 		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envDev:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
