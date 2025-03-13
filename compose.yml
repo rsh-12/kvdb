@@ -19,6 +19,20 @@ services:
       - victoria_metrics_data:/victoria_metrics_data
     ports:
       - "127.0.0.1:8428:8428"
+  
+  grafana:
+    image: grafana/grafana-oss:11.0.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: grafana
+      GF_SECURITY_ADMIN_PASSWORD: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+
 
 volumes:
   victoria_metrics_data:
+  grafana_data:
